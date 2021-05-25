@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>아이템 목록보기</title>
+<style>
+div.body {
+	overflow-y: auto;
+	scrollbar-face-color: #CCCCCC;
+	scrollbar-shadow-color: #F7F7F7;
+	margin-top: 50px;
+	margin-bottom: 50px;
+}
+
+tr.header {
+	background: #CCCCCC;
+}
+
+tr.record {
+	background: #F7F7F7;
+}
+</style>
+</head>
+<body>
+	<div align="center" class="body">
+		<h2>상품 목록 화면</h2>
+		<table width="100%">
+			<tr>
+				<td align='left' width="50%"><a href="/">메인 화면</a></td>
+				<td align="right" id="countdisp">데이터개수:</td>
+			</tr>
+		</table>
+		<table border="1" id="itemlist" width="100%">
+			<tr class="header">
+				<th align="center" width="20%">상품ID</th>
+				<th align="center" width="60%">상품명</th>
+				<th align="center" width="20%">가격</th>
+			</tr>
+		</table>
+		<table border="1" id="addlist" width="100%">
+
+		</table>
+	</div>
+</body>
+<script>
+	var pageno = 0; 
+	var count = 10; 
+	function add() { 
+		pageno = pageno + 1;
+		
+		var xhr = new XMLHttpRequest(); 
+		xhr.open('get', 'paging?pageno=' + pageno +"&count=" + count); 
+		xhr.send(null);
+
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) { 
+			if (xhr.status >= 200 && xhr.status < 300) { 
+				var abc = xhr.responseText; 
+				var o = JSON.parse(abc); 
+				var countdisp = document.getElementById("countdisp"); 
+				countdisp.innerHTML += o.count + "개";
+
+				var pagesu = o.count / count;
+				var displayHtml = "" 
+				o.list.forEach(function(item) {
+					displayHtml += "<tr class='record'>"; 
+					displayHtml += "<td align='center'>" + item.itemid + "</td>"; 
+					displayHtml += "<td align='left'>" + "<a href = '#' onclick='detail(" + item.itemid + ")'>" + item.itemname + "</a></td>"; 
+					displayHtml += "<td align='right'>" + item.price + "</td>"; 
+					displayHtml += "</tr>";
+
+				});
+				document.getElementById('itemlist').innerHTML += displayHtml; 
+				if (pagesu > pageno) { 
+					displayHtml = "<tr id='page" + pageno +"'><td colspan='3' align='center'>" + "<p style='cursor: pointer' id='add' onclick='add()'>더보기</p>" + "</td></tr>"; 
+					document.getElementById('addlist').innerHTML = displayHtml; 
+				} else { 
+					document.getElementById('addlist').innerHTML = ''; } 
+				} else if (xhr.status >= 400 && xhr.status < 500) { 
+					alert(xhr.status); 
+				}
+			}
+
+		};
+	} 
+	function detail(itemid) { 
+		sessionStorage["itemid"] = itemid; 
+		location.href = "detail"; 
+	} 
+	add(); 
+</script> 
+</html>

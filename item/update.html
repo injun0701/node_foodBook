@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>데이터 수정</title>
+</head>
+<body>
+
+	<form method="post" enctype="multipart/form-data" id="updateform">
+
+		상품 아이디:<input type="text" name="itemid" id="itemid" readonly="readonly" /><br/> 
+		상품 이름<input type="text" name="itemname" id="itemname" value="" /><br /> 
+		가격<input type="text" name="price" id="price" value="1500" /><br /> 
+		설명<input type="text" name="description" id="description" value="" /><br />
+		새로운 이미지<input type="file" name="pictureurl" id="pictureurl" /><br />
+		이전 이미지<input type="text" name="oldpictureurl" id="oldpictureurl" readonly="readonly" /><br /> 
+		<input type="button" value="수정" id="updatebtn"> 
+		<input type="button" value="목록" id="listbtn">
+	</form>
+</body>
+<script>
+	var xhr = new XMLHttpRequest(); 
+	var itemid = sessionStorage["itemid"]; 
+	xhr.open('get', '/item/getitem/' + itemid); 
+	xhr.send(null);
+
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) { 
+			if (xhr.status >= 200 && xhr.status < 300) { 
+				var data = JSON.parse(xhr.responseText); 
+				var result = data.result;
+
+				if (result == true) { 
+					var item = data.item; 
+					document.getElementById("itemid").value = item.itemid 
+					document.getElementById("itemname").value = item.itemname; 
+					document.getElementById("price").value = item.price; 
+					document.getElementById("description").value = item.description; 
+					document.getElementById("oldpictureurl").value = item.imgurl; 
+				} else { 
+					disp.innerHTML = "<p>데이터가 존재하지 않습니다.</p>" 
+					}
+			} else if (xhr.status >= 400 && xhr.status < 500) { 
+				alert(xhr.status); 
+			} 
+		} 
+	};
+	
+	document.getElementById("listbtn").addEventListener('click', function() { 
+		location.href = 'list';
+	});
+	
+	document.getElementById("updatebtn").addEventListener('click', function() { 
+		// XMLHttpRequest 객체의 생성 
+		const xhr = new XMLHttpRequest(); 
+		xhr.open('POST', 'update'); 
+		var formData = new FormData(updateform) 
+		xhr.send(formData); 
+		// XMLHttpRequest.readyState 프로퍼티가 변경(이벤트 발생)될 때마다 onreadystatechange 이벤트 핸들러가 호출된다.
+	
+		xhr.onreadystatechange = function(e) { 
+			if (xhr.readyState !== XMLHttpRequest.DONE) return;
+			// status는 response 상태 코드를 반환 : 200 => 정상 응답 
+			if (xhr.status === 200) {
+				var obj = JSON.parse(xhr.responseText);
+
+				if (obj.result == true) { 
+					location.href = 'list';
+				} else { 
+					alert("수정 실패");
+				} 
+			} else {
+				console.log('Error!'); 
+			}
+		};
+	});
+</script>
+</html>

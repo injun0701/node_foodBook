@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>데이터 삽입</title>
+</head>
+<body>
+	<h2>상품 등록 화면</h2>
+
+	<form method="post" enctype="multipart/form-data" id="insertform">
+
+		유저 아이디<input type="text" name="username" /><br/> 
+		상품 이름<input type="text" name="itemname" /><br/> 
+		상품 가격<input type="text" name="price" /><br/> 
+		설명<input type="text" name="description" /><br/>  
+		이미지<input type="file" name="imgurl" accept="image/*" /><br/> 
+		<input type="button" id="insertbtn" value="삽입">
+
+	</form>
+</body>
+<script> 
+	var insertbtn = document.getElementById("insertbtn"); 
+	var insertform = document.getElementById("insertform");
+
+	insertbtn.addEventListener('click', function(e) { 
+		// XMLHttpRequest 객체의 생성 
+		const xhr = new XMLHttpRequest(); 
+		xhr.open('POST', 'insert'); 
+		var formData = new FormData(insertform) 
+		xhr.send(formData); 
+		// XMLHttpRequest.readyState 프로퍼티가 변경(이벤트 발생)될 때마다 onreadystatechange 이벤트 핸들러가 호출된다.
+		xhr.onreadystatechange = function(e) { 
+			if (xhr.readyState !== XMLHttpRequest.DONE) return;
+		//status는 response 상태 코드를 반환 : 200 => 정상 응답 
+		if (xhr.status === 200) {
+			var obj = JSON.parse(xhr.responseText);
+
+			if(obj.result == true){ 
+				location.href = 'list';
+			}else{ 
+				alert("삽입 실패");
+			} 
+		} else {
+			console.log('Error!'); }
+		};
+	}) 
+</script>
+</html>

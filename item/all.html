@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>전체보기</title>
+<style>
+div.body {
+	overflow-y: auto;
+	scrollbar-face-color: #CCCCCC;
+	scrollbar-shadow-color: #F7F7F7;
+	margin-top: 50px;
+	margin-bottom: 50px;
+}
+
+tr.header {
+	background: #CCCCCC;
+}
+
+tr.record {
+	background: #F7F7F7;
+}
+</style>
+</head>
+<body>
+	<div align="center" class="body">
+		<h2>상품 목록 화면</h2>
+		<table width="100%">
+			<tr>
+				<td align='left' width="50%"><a href="/">메인 화면</a></td>
+				<td align="right" id="countdisp">데이터개수:</td>
+			</tr>
+		</table>
+		<table border="1" id="itemlist" width="100%">
+			<tr class="header">
+				<th align="center" width="20%">상품ID</th>
+				<th align="center" width="60%">상품명</th>
+				<th align="center" width="20%">가격</th>
+			</tr>
+		</table>
+	</div>
+</body>
+<script>
+	var xhr = new XMLHttpRequest();
+	xhr.open('get', 'getall');
+	xhr.send(null);
+
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				var o = JSON.parse(xhr.responseText);
+				var countdisp = document.getElementById("countdisp");
+				countdisp.innerHTML += o.count + "개";
+				var displayHtml = ""
+				o.list.forEach(function(item) {
+							displayHtml += "<tr class='record'>";
+							displayHtml += "<td align='center'>" + item.itemid
+									+ "</td>";
+							displayHtml += "<td align='left'>"
+									+ "<a href = '#' onclick='detail("
+									+ item.itemid + ")'>" + item.itemname
+									+ "</a></td>";
+							displayHtml += "<td align='right'>" + item.price
+									+ "원</td>";
+							displayHtml += "</tr>";
+						});
+				document.getElementById('itemlist').innerHTML += displayHtml;
+			} else if (xhr.status >= 400 && xhr.status < 500) {
+				alert(xhr.status);
+			}
+		}
+
+	};
+
+	function detail(itemid) {
+		sessionStorage["itemid"] = itemid;
+		location.href = "detail";
+	}
+</script>
+</html>
