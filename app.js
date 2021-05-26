@@ -324,44 +324,6 @@ app.get('/item/getall', (req, res, next) => {
 	});
 });
 
-//페이지 단위 데이터 가져오기
-//app.get('/item/paging', (req, res, next) => { 
-//	
-//	//ex http://192.168.0.4/item/paging?pageno=2&count=3
-//	
-//	//get 방식의 파라미터 가져오기 
-//	const pageno = req.query.pageno; 
-//	const count = req.query.count;
-//
-//	console.log(count); 
-//	//데이터를 가져올 시작 위치와 데이터 개수 설정 
-//	var start = 0;
-//	var size = 10;
-//	if(pageno != undefined){
-//		if(count != undefined){ 
-//			size = parseInt(count)
-//		}
-//		start = (pageno - 1) * size 
-//	}
-//	//시작 위치와 페이지 당 데이터 개수를 설정해서 가져오기 
-//	var list;
-//	connect(); 
-//	connection.query('SELECT * FROM item order by itemid desc limit ?, ?', [start, size], function(err, results, fields) { 
-//		if(err){ 
-//			throw err; 
-//		} 
-//		list = results; 
-//		//전체 데이터 개수 가져오기 
-//		connection.query('SELECT count(*) cnt FROM item', function(err, results, fields) { 
-//			if(err) 
-//				throw err; 
-//			res.json({'count':results[0].cnt, 'list':list}); 
-//			close();
-//		});
-//	});
-//});
-
-
 //username을 기반으로 페이지 단위 데이터 가져오기
 app.get('/item/paging', (req, res, next) => { 
 	
@@ -393,7 +355,10 @@ app.get('/item/paging', (req, res, next) => {
 	
 	connect(); 
 	
-	connection.query('SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN user ON item.username=user.username AND user.username=item.username WHERE item.username like ? or item.itemname like ? or item.description like ? order by itemid desc limit ?, ?', [username, searchkeyword, searchkeyword, searchkeyword, start, size], function(err, results, fields) { 
+	let sql = 'SELECT * FROM ( SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, CASE WHEN itemvisible.itemvisibleid IS NULL THEN false ELSE true END AS useritemvisible, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN itemvisible ON item.itemid=itemvisible.itemid AND itemvisible.username=? LEFT JOIN userblocking ON item.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON item.username=user.username AND user.username=item.username WHERE item.username like ? or item.itemname like ? or item.itemname like ?) a WHERE a.useritemvisible = false and a.userblocking = false order by a.itemid desc limit ?, ?'
+
+	
+	connection.query(sql, [username, username, username, searchkeyword, searchkeyword, searchkeyword, start, size], function(err, results, fields) { 
 		if(err) { 
 			throw err; 
 		} 
@@ -404,7 +369,7 @@ app.get('/item/paging', (req, res, next) => {
 				throw err; 
 			allcount = results[0].cnt
 			//서치한 데이터 개수 가져오기 
-			connection.query('SELECT count(*) cnt FROM item WHERE item.username like ? or item.itemname like ? or item.description like ?', [searchkeyword, searchkeyword, searchkeyword], function(err, results, fields) { 
+			connection.query('SELECT count(*) cnt FROM  ( SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, CASE WHEN itemvisible.itemvisibleid IS NULL THEN false ELSE true END AS useritemvisible, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN itemvisible ON item.itemid=itemvisible.itemid AND itemvisible.username=? LEFT JOIN userblocking ON item.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON item.username=user.username AND user.username=item.username WHERE item.username like ? or item.itemname like ? or item.itemname like ?) a WHERE a.useritemvisible = false and a.userblocking = false ', [username, username, username, searchkeyword, searchkeyword, searchkeyword], function(err, results, fields) { 
 				if(err) 
 					throw err; 
 				searchcount = results[0].cnt
@@ -417,7 +382,7 @@ app.get('/item/paging', (req, res, next) => {
 					} else { 
 						res.json({'noticheck': true, 'allcount':allcount, 'searchcount': searchcount, 'list':list});
 					}  
-					//close();
+					close();
 				});
 			});
 		});
@@ -447,17 +412,17 @@ app.get('/item/like/paging', (req, res, next) => {
 	var list;
 	connect(); 
 	
-	connection.query('SELECT * FROM (SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN user ON item.username=user.username AND user.username=item.username) a WHERE a.useritemlike = true order by itemid desc limit ?, ?', [username, start, size], function(err, results, fields) { 
+	connection.query('SELECT * FROM (SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, CASE WHEN itemvisible.itemvisibleid IS NULL THEN false ELSE true END AS useritemvisible, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN itemvisible ON item.itemid=itemvisible.itemid AND itemvisible.username=? LEFT JOIN userblocking ON item.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON item.username=user.username AND user.username=item.username) a WHERE a.useritemlike = true and a.useritemvisible = false and a.userblocking = false order by a.itemid desc limit ?, ?', [username, username, username, start, size], function(err, results, fields) { 
 		if(err){  
 			throw err; 
 		} 
 		list = results; 
 		//전체 데이터 개수 가져오기 
-		connection.query('SELECT count(*) cnt FROM (SELECT * FROM (SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, user.userimgurl AS userimgurl FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN user ON item.username=user.username AND user.username=item.username) a WHERE a.useritemlike = true) b', username, function(err, results, fields) { 
+		connection.query('SELECT count(*) cnt FROM  ( SELECT item.*, CASE WHEN itemlike.likeid IS NULL THEN false ELSE true END AS useritemlike, CASE WHEN itemvisible.itemvisibleid IS NULL THEN false ELSE true END AS useritemvisible, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl, (SELECT count(*) cnt FROM comment WHERE comment.itemid = item.itemid) AS commentcount, (SELECT count(*) cnt FROM itemlike WHERE itemlike.itemid = item.itemid) AS likecount FROM item LEFT JOIN itemlike ON item.itemid=itemlike.itemid AND itemlike.username=? LEFT JOIN itemvisible ON item.itemid=itemvisible.itemid AND itemvisible.username=? LEFT JOIN userblocking ON item.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON item.username=user.username AND user.username=item.username) a WHERE a.useritemlike = true and a.useritemvisible = false and a.userblocking = false', [username, username, username], function(err, results, fields) { 
 			if(err) 
 				throw err; 
 			res.json({'count': results[0].cnt, 'list':list}); 
-			//close();
+			close();
 		});
 	});
 });
@@ -478,7 +443,7 @@ app.get('/item/getitem/:itemid', (req, res, next) => {
 		else { 
 			res.json({'result':true, 'item':results}); 
 		} 
-		//close();
+		close();
 	});
 });
 
@@ -501,7 +466,6 @@ app.get('/item/img/:fileid', function(req, res) {
 app.post('/item/insert', upload.single('imgurl'), (req, res, next) => {
 	//파라미터 가져오기
 	const username = req.body.username;
-	const userimgurl = req.body.userimgurl;
 	const itemname = req.body.itemname;
 	const description = req.body.description;
 	const price = req.body.price;
@@ -642,6 +606,7 @@ app.get('/item/comment/paging', (req, res, next) => {
 	//ex http://192.168.0.4/item/comment/paging?pageno=2&count=3&itemid=3
 	const itemid = req.query.itemid; 
 	if(!itemid) return res.status(404).send('itemid was not found');
+	const username = req.query.username; 
 	const pageno = req.query.pageno; 
 	const count = req.query.count;
 
@@ -659,16 +624,16 @@ app.get('/item/comment/paging', (req, res, next) => {
 	var list;
 	connect(); 
 	
-	connection.query('SELECT comment.*, user.userimgurl AS userimgurl FROM comment LEFT JOIN user ON comment.username=user.username AND user.username=comment.username WHERE comment.itemid=? order by commentid asc limit 0, 5', [itemid, start, size], function(err, results, fields) { 
+	connection.query('SELECT * FROM (SELECT comment.*, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl FROM comment LEFT JOIN userblocking ON comment.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON comment.username=user.username AND user.username=comment.username WHERE comment.itemid=?) a WHERE a.userblocking = false order by commentid asc limit ?, ?', [username, itemid, start, size], function(err, results, fields) { 
 		if(err) { 
 			throw err; 
 		} 
 		list = results; 
 		//전체 데이터 개수 가져오기 
-		connection.query('SELECT count(*) cnt FROM comment where itemid = ?', itemid, function(err, results, fields) { 
+		connection.query('SELECT count(*) cnt FROM (SELECT * FROM (SELECT comment.*, CASE WHEN userblocking.userblockingid IS NULL THEN false ELSE true END AS userblocking, user.userimgurl AS userimgurl FROM comment LEFT JOIN userblocking ON comment.username=userblocking.tousername AND userblocking.fromusername=? LEFT JOIN user ON comment.username=user.username AND user.username=comment.username WHERE comment.itemid=?) a WHERE a.userblocking = false) a', [username, itemid], function(err, results, fields) { 
 			if(err) throw err; 
 			res.json({'count':results[0].cnt, 'list':list}); 
-			//close();
+			close();
 		});
 	});
 });
@@ -897,7 +862,7 @@ app.get('/user/loginlog/paging', (req, res, next) => {
 		connection.query('select count(*) cnt from loginlog where userid = ?', userid, function(err, results, fields) { 
 			if(err) throw err; 
 			res.json({'count':results[0].cnt, 'list':list}); 
-			//close();
+			close();
 		});
 	});
 });
@@ -966,7 +931,7 @@ app.delete('/user/delete', (req, res, next) => {
 								} else {
 									res.json({'result':false}); 
 								} 
-								//close();
+								close();
 							});	
 						});	
 					});
@@ -1009,7 +974,7 @@ app.get('/user/noti/paging', (req, res, next) => {
 		connection.query('SELECT count(*) cnt FROM (SELECT noti.*, user.userimgurl AS userimgurl, item.username AS tousername FROM noti LEFT JOIN user ON noti.username=user.username AND user.username=noti.username LEFT JOIN item ON noti.itemid=item.itemid) a WHERE a.tousername=?', username, function(err, results, fields) { 
 			if(err) throw err; 
 			res.json({'count':results[0].cnt, 'list':list}); 
-			//close();
+			close();
 		});
 	});
 });
@@ -1035,7 +1000,7 @@ app.delete('/user/noti/delete', (req, res, next) => {
 		} else {
 			res.json({'result':false}); 
 		} 
-		//close();
+		close();
 	});
 });
 
@@ -1065,6 +1030,191 @@ app.delete('/user/noticheck/delete', (req, res, next) => {
 		close();	
 	});
 });
+
+//신고 데이터 전부 가져오기를 처리해주는 요청
+app.get('/declaration/getall', (req, res, next) => {
+	//데이터베이스 연결
+	connect();
+	//읽어온 데이터를 저장할 변수
+	var list; 
+	//데이터베이스에 SQL 실행 
+	connection.query('SELECT * FROM declaration', function(err, results, fields) {
+		if(err) { 
+			throw err;
+		}
+		//결과 저장
+		list = results;
+		//전체 데이터 개수 가져오기
+		connection.query('SELECT count(*) cnt FROM declaration', function(err, results, fields) { 
+			if(err) throw err; 
+			res.json({'count':results[0].cnt, 'list':list}); 
+			close();
+		});
+	});
+});
+
+//신고 삽입
+app.post('/declaration', (req, res) => {
+	//post 방식의 파라미터 가져오기
+	const itemid = req.body.itemid; 
+	var commentid = req.body.commentid;
+	const declaration = req.body.declaration;
+	
+	if (commentid == "") {
+		commentid = null
+	}
+	
+	connect();
+	connection.query('insert into declaration(itemid, commentid, declaration) values(?, ?, ?)',
+			[itemid, commentid, declaration], function(err, results, fields) {
+		if (err) {
+			throw err;
+		}
+		if(results.affectedRows == 1) {
+			res.json({'result':true}); 
+		}else {
+			res.json({'result':false}); 
+		}
+		close();
+	});
+});
+
+//신고 삭제
+app.delete('/declaration/delete', (req, res, next) => { 
+
+	const itemid = req.query.itemid; 
+	if(!itemid) return res.status(404).send('username was not found');
+	const commentid = req.query.commentid; 
+	
+	var id = ''
+
+	currentDay();
+
+	connect(); 
+		
+	if(commentid == '') {
+		id = itemid
+		//알림체 삭제 SQL 실행  
+		connection.query('DELETE FROM declaration where itemid=?', id, function(err, results, fields) {
+
+			if(err) throw err;
+			console.log(results)
+			//이 게시물의 댓글 삭제 SQL 실행 
+			connection.query('delete FROM comment where itemid = ?', id, function(err, results, fields) {
+
+				if(err) throw err;
+				console.log(results)
+				
+				//이 게시물의 좋아요 삭제 SQL 실행 
+				connection.query('delete FROM itemlike where itemid = ?', id, function(err, results, fields) {
+
+					if(err) throw err;
+					console.log(results)
+					
+					//이 게시물 삭제 SQL 실행 
+					connection.query('delete FROM item where itemid = ?', id, function(err, results, fields) {
+
+						if(err) throw err;
+					
+						console.log(results)
+					
+						if(results.affectedRows == 1) { 
+							updateDate(); 
+							//성공한 경우 true
+							res.json({'result':true});
+						}else { 
+							//성공한 경우 false
+							res.json({'result':false});
+						}
+						close();
+					});
+				});
+			});
+		});
+	} else {
+		id = commentid
+		//알림체 삭제 SQL 실행  
+		connection.query('DELETE FROM declaration where commentid=?', id, function(err, results, fields) {
+
+			if(err) throw err;
+			console.log(results)
+
+			//댓글 삭제 SQL 실행  
+			connection.query('delete FROM comment where commentid = ?', id, function(err, results, fields) {
+
+				if(err) throw err;
+				console.log(results)
+				
+				//댓글 삭제 SQL 실행  
+				connection.query('delete FROM noti where commentid = ?', id, function(err, results, fields) {
+
+					if(err) throw err;
+					console.log(results)
+					
+					if(results.affectedRows == 1 ) { 
+						updateDate(); //아이템의 마지막 업데이트 시간 변경
+						commentUpdateDate(); //댓글의 마지막 업데이트 시간 변경
+						res.json({'result':true}); 
+
+					} else {
+						res.json({'result':false}); 
+					} 
+					close();
+				});
+			});
+		});
+	}
+});
+
+//게시물 안보기 
+app.post('/item/visible', (req, res) => {
+	//post 방식의 파라미터 가져오기
+	const itemid = req.body.itemid; 
+	const username = req.body.username; 
+
+	currentDay();
+
+	connect();
+	connection.query('insert into itemvisible(itemid, username) values(?, ?)',
+			[itemid, username], function(err, results, fields) {
+		if (err) {
+			throw err;
+		}
+		if(results.affectedRows == 1) {
+			updateDate(); //아이템의 마지막 업데이트 시간 변경
+			res.json({'result':true}); 
+		}else {
+			res.json({'result':false}); 
+		}
+		close();
+	});
+});
+
+//유저 차단
+app.post('/user/blocking', (req, res) => {
+	//post 방식의 파라미터 가져오기
+	const tousername = req.body.tousername; 
+	const fromusername = req.body.fromusername; 
+
+	currentDay();
+
+	connect();
+	connection.query('insert into userblocking(tousername, fromusername) values(?, ?)',
+			[tousername, fromusername], function(err, results, fields) {
+		if (err) {
+			throw err;
+		}
+		if(results.affectedRows == 1) {
+			updateDate(); //아이템의 마지막 업데이트 시간 변경
+			commentUpdateDate(); //댓글의 마지막 업데이트 시간 변경
+			res.json({'result':true}); 
+		}else {
+			res.json({'result':false}); 
+		}
+		close();
+	});
+});
+
 
 //프로젝트의 update.txt 파일에 마지막 업데이트 시간을 알려주는 코드
 app.get('/item/lastupdatetime', (req, res, next) => { 
